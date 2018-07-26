@@ -5,7 +5,7 @@ from card import *
 class Shoe(object):
   def __init__(self, shoe_size, reshuffle_ratio):
     self._cards = self._create_shoe(shoe_size)
-    self._reshuffle_ratio = reshuffle_ratio
+    self.reshuffle_ratio = reshuffle_ratio
     self._idx = 0
     self._hilo_count = 0
     self.shuffle()
@@ -14,7 +14,7 @@ class Shoe(object):
     random.shuffle(self._cards)
     self._idx = 0
 
-  def shoe_depth():
+  def depth(self):
     return self._idx / len(self._cards)
 
   def draw(self):

@@ -8,10 +8,10 @@ class Dealer(Player):
 
   def count(self):
     if self.show_hand:
-      return super.count()
+      return super().count()
     return self.cards[0].max_val
 
   def __str__(self):
     if self.show_hand:
-      return super.__str__()
-    return str(self.cards[0]) + str(self.cards[0].max_val)
+      return super().__str__()
+    return str(self.cards[0]) + ' X - ' + str(self.cards[0].max_val)

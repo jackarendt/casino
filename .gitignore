@@ -30,10 +30,6 @@ xcuserdata/
 *.dSYM
 
 # ML Data.
-vision/tiles/
-vision/tile_model/
-vision/ocr/
-vision/ocr_model/
 
 # Python
 __pycache__/

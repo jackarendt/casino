@@ -9,7 +9,7 @@ class Player(object):
     self.cards = []
 
   def is_soft_hand(self):
-    if len(filter(lambda card: card.desc == 'A', self.cards)) == 0:
+    if filter(lambda card: card.desc == 'A', self.cards) is not None:
       return True
 
     total = 0
@@ -21,7 +21,7 @@ class Player(object):
   def count(self):
     total = 0
     has_ace = False
-    for card in cards:
+    for card in self.cards:
       if card.desc == 'A':
         has_ace = True
       total += card.max_val
@@ -33,7 +33,7 @@ class Player(object):
 
   def __str__(self):
     desc = ''
-    for card in cards:
+    for card in self.cards:
       desc += str(card) + ' '
 
     desc += '- ' + str(self.count())

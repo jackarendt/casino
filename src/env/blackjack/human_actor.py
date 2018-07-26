@@ -2,8 +2,8 @@ from actor import *
 from player import *
 
 class HumanActor(Actor):
-  def __init__(self, player):
-    super().__init__(player)
+  def __init__(self, chip_count):
+    super().__init__(chip_count)
     self.bet = 10
 
   def process_state(self, state):

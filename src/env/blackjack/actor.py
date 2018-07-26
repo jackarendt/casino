@@ -23,11 +23,7 @@ class Actor(object):
         recently drawn card.
     returns : int
     """
-    # Add the new card to the player's hand.
-    new_card = state.get('new_card')
-    if new_card is not None:
-      self.cards.append(new_card)
-      state['new_card'] = None
+    pass
 
   def process_reward(self, chip_reward, other_reward):
     """
@@ -44,13 +40,31 @@ class Actor(object):
     self.chip_count += chip_reward
     self.reset_hand()
 
+  def add_card(self, card):
+    # Add the new card to the player's hand.
+    self.cards.append(card)
+
   def reset_hand(self):
+    """Removes all of the cards from the current hand."""
     self.cards = []
 
   def is_soft_hand(self):
-    if filter(lambda card: card.desc == 'A', self.cards) is not None:
+    """
+    Returns whether the current hand is a soft hand. A soft hand is defined as
+    having two cards, summing less than 21, where at least one card is an ace.
+    ex) A 6 = 7 or 17. A 10 = 21, and sums to blackjack. This is technically not
+    a soft hand. A 6 2 = 20 is not a soft hand because it has more than 2 cards.
+    """
+    if len(self.cards) != 2:
+      return False
+
+    # Check if the user has an ace.
+    if filter(lambda card: card.is_ace(), self.cards) is not None:
       return True
 
+    # Sum all of the min values in the hand. If the sum comes to less than 11,
+    # then it means that there is room for an ace to take on the value of 11 or
+    # 1.
     total = 0
     for card in self.cards:
       total += card.min_value
@@ -58,19 +72,25 @@ class Actor(object):
     return card.min_value < 11
 
   def count(self):
-    total = 0
-    has_ace = False
-    for card in self.cards:
-      if card.desc == 'A':
-        has_ace = True
-      total += card.max_val
+    """
+    Returns the max count of the hand. This accounts for the value of an ace.
+    """
+    # Sort the cards by the max_val. This ensures that aces are counted last.
+    sorted_cards = sorted(self.cards, key=lambda card: card.max_val)
 
-    if has_ace and total > 21:
-      total -= 10
+    total = 0
+    for card in sorted_cards:
+      # The ace will have a value of 1 if the new total would be greater than
+      # 21.
+      if card.is_ace() and total + card.max_val > 21:
+        total += card.min_val
+      else:
+        total += card.max_val
 
     return total
 
   def __str__(self):
+    """ex) K 6 - 16"""
     desc = ''
     for card in self.cards:
       desc += str(card) + ' '

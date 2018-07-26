@@ -1,6 +1,10 @@
 from actor import *
 
 class DealerActor(Actor):
+  """
+  An actor that represents how a dealer behaves on the table. It follows Vegas
+  rules. Hit on soft 17.
+  """
   def __init__(self, chip_count):
     super().__init__(chip_count)
     self.show_hand = False
@@ -10,9 +14,8 @@ class DealerActor(Actor):
     self.show_hand = True
     count = self.count()
 
-    if count < 17:
-      return HIT
-    if count == 17 and self.is_soft_hand() and len(self.cards) == 2:
+    # The dealer should hit on 17 or below, or on soft 17.
+    if count <= 17 or (count == 17 and self.is_soft_hand()):
       return HIT
     return STAND
 

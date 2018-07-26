@@ -21,6 +21,9 @@ class Shoe(object):
     card = self._cards[self._idx]
     self._idx += 1
     self._hilo_count += card.hilo_count()
+
+    if self._idx == len(self._cards):
+      self.shuffle()
     return card
 
   def peek(self, length):

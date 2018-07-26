@@ -51,12 +51,15 @@ class Blackjack(object):
 
       d = False
       while not d:
+        if agent.player.count() > 21:
+          break
+
+        a = agent.process_state(state)
         if self.print_desc:
           print('Player ' + str(idx + 1) + ': ' + str(agent.player))
-        a = agent.process_state(state)
         if a == actor.HIT or actor.DOUBLE_DOWN:
           state['new_card'] = self.shoe.draw()
-        d = a == actor.STAND or a == actor.DOUBLE_DOWN or agent.player.count() > 21
+        d = a == actor.STAND or a == actor.DOUBLE_DOWN
 
       if self.print_desc:
         print('[FINAL] Player ' + str(idx + 1) + ': ' + str(agent.player))
@@ -66,9 +69,12 @@ class Blackjack(object):
 
     state = {}
     while not d:
+      if self.dealer.player.count() > 21:
+        break
+
+      a = self.dealer.process_state(state)
       if self.print_desc:
         print('Dealer: ' + str(self.dealer.player))
-      a = self.dealer.process_state(state)
       if a == actor.HIT:
         state['new_card'] = self.shoe.draw()
       d = a == actor.STAND

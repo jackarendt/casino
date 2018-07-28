@@ -1,9 +1,6 @@
 from card import *
-
-STAND = 0
-HIT = 1
-DOUBLE_DOWN = 2
-SPLIT = 3
+from constants import *
+from hand import *
 
 class Actor(object):
   """
@@ -12,15 +9,16 @@ class Actor(object):
   """
   def __init__(self, chip_count):
     self.chip_count = chip_count
-    self.cards = []
+    self.hands = [Hand()]
+    self.hand_count = 0
     self.bet = 0
 
   def process_state(self, state):
     """
     Processes the incoming state, and returns an action to perform.
     state : dictionary
-      - The incoming state. This could be the dealer's card, count, or the
-        recently drawn card.
+      - The incoming state. This could be the dealer's card, count, or current
+        hand.
     returns : int
     """
     pass
@@ -40,62 +38,66 @@ class Actor(object):
     self.chip_count += chip_reward
     self.reset_hand()
 
-  def add_card(self, card):
-    # Add the new card to the player's hand.
-    self.cards.append(card)
+  def split_hand(self, hand_idx=0):
+    """
+    Splits a hand into two hands. This is done in place, so the new hand is
+    added to the index after the current index.
+    hand_idx Int:
+      - The index of the hand to split.
+    """
+    first_card = self.hands[hand_idx].cards[0]
+    second_card = self.hands[hand_idx].cards[1]
+    self.hands.insert(hand_idx + 1, Hand())
+    self.hands[hand_idx].reset_hand()
+    self.add_card(first_card, hand_idx)
+    self.add_card(second_card, hand_idx + 1)
+
+    self.hands[hand_idx].is_split = True
+    self.hands[hand_idx + 1].is_split == True
+
+  def add_card(self, card, hand_idx=0):
+    """Add the new card to the player's hand at a given index."""
+    self.hands[hand_idx].add_card(card)
 
   def reset_hand(self):
     """Removes all of the cards from the current hand."""
-    self.cards = []
+    self.hands = [Hand()]
 
-  def is_soft_hand(self):
+  def is_soft_hand(self, hand_idx=0):
     """
     Returns whether the current hand is a soft hand. A soft hand is defined as
     having two cards, summing less than 21, where at least one card is an ace.
     ex) A 6 = 7 or 17. A 10 = 21, and sums to blackjack. This is technically not
     a soft hand. A 6 2 = 20 is not a soft hand because it has more than 2 cards.
     """
-    if len(self.cards) != 2:
-      return False
+    return self.hands[hand_idx].is_soft_hand()
 
-    # Check if the user has an ace.
-    if filter(lambda card: card.is_ace(), self.cards) is not None:
-      return True
-
-    # Sum all of the min values in the hand. If the sum comes to less than 11,
-    # then it means that there is room for an ace to take on the value of 11 or
-    # 1.
-    total = 0
-    for card in self.cards:
-      total += card.min_value
-
-    return card.min_value < 11
-
-  def count(self):
+  def count(self, hand_idx=0):
     """
     Returns the max count of the hand. This accounts for the value of an ace.
     """
-    # Sort the cards by the max_val. This ensures that aces are counted last.
-    sorted_cards = sorted(self.cards, key=lambda card: card.max_val)
+    return self.hands[hand_idx].count()
 
-    total = 0
-    for card in sorted_cards:
-      # The ace will have a value of 1 if the new total would be greater than
-      # 21.
-      if card.is_ace() and total + card.max_val > 21:
-        total += card.min_val
-      else:
-        total += card.max_val
+  def is_blackjack(self, hand_idx=0):
+    """Returns whether a player's hand is a blackjack at a given index."""
+    return self.hands[hand_idx].is_blackjack()
 
-    return total
+  def drawn_cards(self):
+    """Returns how many cards the player has drawn."""
+    drawn_cards = 0
+    for hand in self.hands:
+      drawn_cards += len(hand.cards) - 2
+    return drawn_cards
 
   def __str__(self):
     """ex) K 6 - 16"""
     desc = ''
-    for card in self.cards:
-      desc += str(card) + ' '
+    if len(self.hands) > 1:
+      for idx, hand in enumerate(self.hands):
+        desc += '(' + str(idx) + ') ' + str(hand) + '\n'
+    else:
+      desc = str(self.hands[0])
 
-    desc += '- ' + str(self.count())
     return desc
 
   def __repr__(self):

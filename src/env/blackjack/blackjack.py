@@ -3,7 +3,7 @@ import dealer_actor
 import human_actor
 import shoe
 
-BLACKJACK_COUNT = 21
+from constants import *
 
 class Blackjack(object):
   """
@@ -36,9 +36,9 @@ class Blackjack(object):
       # Deal the card to the dealer last. This makes indexing easier, as well as
       # follows Vegas rules.
       if i % self.player_count == self.player_count - 1:
-        self.dealer.cards.append(card)
+        self.dealer.add_card(card)
       else:
-        self.agents[i % self.player_count].cards.append(card)
+        self.agents[i % self.player_count].add_card(card)
 
     if self.print_desc:
       print('Dealer: ' + str(self.dealer))
@@ -51,93 +51,152 @@ class Blackjack(object):
     Iterates through all of the agents and then the dealer to play their hand.
     """
     for idx, agent in enumerate(self.agents):
-      d = False
-      while not d:
-        # The count should be adjusted such that the dealer's second card count
-        # isn't revealed.
-        state = {
-          'state': self.dealer.cards[0],
-          'count': self.shoe.hilo_count() - self.dealer.cards[1].hilo_count()
-        }
+      self.play_agent(agent, idx)
 
-        # Process the current state.
-        a = agent.process_state(state)
-
-        # Add the card if the user hit.
-        if a == actor.HIT or a == actor.DOUBLE_DOWN:
-          agent.add_card(self.shoe.draw())
-
-        # Print the description after the user takes their action.
-        if self.print_desc:
-          print('Player ' + str(idx + 1) + ': ' + str(agent))
-
-        # The agent is finished after they stand, or double down.
-        d = (a == actor.STAND or a == actor.DOUBLE_DOWN or
-            agent.count() > BLACKJACK_COUNT)
-
-      if self.print_desc:
-        print('[FINAL] Player ' + str(idx + 1) + ': ' + str(agent))
-
-    d = False
     self.dealer.show_hand = True
     if self.print_desc:
       print('Dealer: ' + str(self.dealer))
 
-    while not d:
-      a = self.dealer.process_state({})
-      if a == actor.HIT:
-        self.dealer.add_card(self.shoe.draw())
-
-      if self.print_desc:
-        print('Dealer: ' + str(self.dealer))
-
-      # Dealer is done when they stand or bust.
-      d = a == actor.STAND or self.dealer.count() >= BLACKJACK_COUNT
+    # Assess the dealer actions.
+    self.play_dealer(self.dealer)
 
     if self.print_desc:
       print('[FINAL] Dealer: ' + str(self.dealer))
       print('-------------------------')
 
   def assess_rewards(self):
+    """Finalizes the hand and either takes or hands out winnings."""
     dealer_count = self.dealer.count()
-    dealer_bust = dealer_count > BLACKJACK_COUNT
     self.dealer.process_reward(0, 0)
 
     for idx, agent in enumerate(self.agents):
-      additional_cards = len(agent.cards) - 2
-      player_count = agent.count()
-      if (player_count > BLACKJACK_COUNT or
-        (agent.count() < dealer_count and dealer_count < BLACKJACK_COUNT)):
-        # Agent loses if they bust or they score less than the dealer without
-        # the dealer busting.
-        agent.process_reward(-1 * agent.bet, additional_cards)
-        self._print_reward(idx, False, False, -1 * agent.bet)
-      elif (dealer_bust or player_count > dealer_count or
-          (agent.count() == BLACKJACK_COUNT and len(agent.cards) == 2)):
-        # Agent wins if the dealer busts, or they score better than the dealer
-        # or the user has blackjack.
-        blackjack = agent.count() == BLACKJACK_COUNT and len(agent.cards) == 2
-        multiplier = 1.5 if blackjack else 1
-        agent.process_reward(multiplier * agent.bet, additional_cards)
-        self._print_reward(idx, True, False, multiplier * agent.bet)
-      else:
-        print('DRAW')
-        agent.process_reward(0, additional_cards)
-        self._print_reward(idx, False, True, 0)
+      # Other rewards are the number of cards that were drawn.
+      additional_cards = agent.drawn_cards()
+      running_reward = 0
+
+      # Iterate through all of the hands of the agent and assess how they
+      # performed.
+      for hand_idx, hand in enumerate(agent.hands):
+        # Get the new reward from the hand and update the running reward.
+        new_reward = self.compare_hands(dealer_count, agent.count(hand_idx),
+            agent.is_blackjack(hand_idx), agent.bet)
+        running_reward += new_reward
+
+        if self.print_desc:
+          won = new_reward > 0
+          draw = new_reward == 0
+          self._print_reward(idx, hand_idx, won, draw, new_reward)
 
       if self.print_desc:
         print('\n\n')
 
-  def _print_reward(self, agent_idx, won, draw, reward):
+      # Process the rewards at the end of each agent's calculation.
+      agent.process_reward(running_reward, agent.drawn_cards())
+
+  def compare_hands(self, dealer, player, blackjack, bet):
+    dealer_bust = dealer > BLACKJACK_VALUE
+    player_bust = player > BLACKJACK_VALUE
+
+    loss = player_bust or (player < dealer and not dealer_bust)
+    win = (dealer_bust or player > dealer or blackjack) and not player_bust
+
+    if win:
+      return (1.5 if blackjack else 1) * bet
+    elif loss:
+      return -1 * bet
+    else:
+      return 0
+
+  def play_agent(self, agent, idx):
+    hand_idx = 0
+    while hand_idx < len(agent.hands):
+      self.play_hand(agent, idx, hand_idx)
+      hand_idx += 1
+    if self.print_desc:
+      if len(agent.hands) == 1:
+        print('[FINAL] Player ' + str(idx + 1) + ': ' + str(agent))
+      else:
+        print('[FINAL] Player ' + str(idx + 1) + ':\n' + str(agent))
+
+
+  def play_hand(self, agent, idx, hand_idx):
+    """
+    Plays an individual hand for an agent.
+    agent Agent:
+      - The agent that is currently playing.
+    idx Int:
+      - The index of the agent that is playing.
+    hand_idx Int:
+      - The index of the hand that is currently being played.
+    """
+    # Splitting aces only allows for one card to be drawn for each hand.
+    # Therefore, don't allow any actions on the second split hand.
+    hand = agent.hands[hand_idx]
+    if hand.is_split and hands.cards[0].is_ace():
+      return
+
+    d = False
+    while not d:
+      # The count should be adjusted such that the dealer's second card count
+      # isn't revealed.
+      count = self.shoe.hilo_count() - self.dealer.hidden_card().hilo_count()
+      state = {
+        DEALER_STATE_KEY: self.dealer.first_card(),
+        COUNT_STATE_KEY: count,
+        DOUBLE_DOWN_STATE_KEY: hand.can_double_down(),
+        SPLIT_STATE_KEY: hand.can_split()
+      }
+
+      # Process the current state.
+      a = agent.process_state(state)
+
+      # Add the card if the user hit.
+      if a == Action.HIT or a == Action.DOUBLE_DOWN:
+        agent.add_card(self.shoe.draw(), hand_idx)
+
+      split_finished = False
+      if a == Action.SPLIT:
+        # Split the hands into two hands.
+        split_finished = hand.cards[0].is_ace()
+        agent.split_hand(hand_idx)
+        agent.add_card(self.shoe.draw(), hand_idx)
+        agent.add_card(self.shoe.draw(), hand_idx + 1)
+
+      # Print the description after the user takes their action.
+      if self.print_desc:
+        print('Player ' + str(idx + 1) + ' (' + str(hand_idx) + '): ' +
+              str(agent.hands[hand_idx]))
+
+      # The agent is finished after they stand, or double down. A controversial,
+      # but relatively accepted rule is only receiving one card for splitting
+      # aces.
+      d = (a == Action.STAND or a == Action.DOUBLE_DOWN or
+           hand.count() > BLACKJACK_VALUE or split_finished)
+
+  def play_dealer(self, dealer):
+    """Plays the dealer's hand."""
+    d = False
+    while not d:
+      a = dealer.process_state({})
+      if a == Action.HIT:
+        dealer.add_card(self.shoe.draw())
+        if self.print_desc:
+          print('Dealer: ' + str(dealer))
+
+      # Dealer is done when they stand or bust.
+      d = a == Action.STAND or dealer.count() >= BLACKJACK_VALUE
+
+  def _print_reward(self, agent_idx, hand_idx, won, draw, reward):
     if not self.print_desc:
       return
 
+    player_desc = 'Player ' + str(agent_idx + 1) + ' (' + str(hand_idx) + ')'
     if won:
-      print('Player ' + str(agent_idx + 1) + ' won. +' + str(reward))
+      print(player_desc + ' won. +' + str(reward))
     elif draw:
-      print('Player ' + str(agent_idx + 1) + ' pushed.')
+      print(player_desc + ' pushed.')
     else:
-      print('Player ' + str(agent_idx + 1) + ' lost. ' + str(reward))
+      print(player_desc + ' lost. ' + str(reward))
 
 if __name__ == '__main__':
   print('Welcome to blackjack. Let\'s shuffle up and deal.')

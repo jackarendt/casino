@@ -1,4 +1,5 @@
 from actor import *
+from constants import *
 
 class HumanActor(Actor):
   """An actor that is controlled via a CLI and played by a human."""
@@ -8,12 +9,23 @@ class HumanActor(Actor):
 
   def process_state(self, state):
     super().process_state(state)
-    a = input('Choose your action. Count: ' + str(state['count']) + '\nHit (h), Stand (s), Double (d):\t')
-    if a == 'h' or a == 'H':
-      return HIT
-    elif a == 's' or a == 'S':
-      return STAND
-    elif a == 'd' or a == 'D':
-      return DOUBLE_DOWN
+    can_double = state.get(DOUBLE_DOWN_STATE_KEY)
+    can_split = state.get(SPLIT_STATE_KEY)
+    input_str = 'Hit (h), Stand (s)'
+    if can_double:
+      input_str += ', Double down (d)'
+    if can_split:
+      input_str += ', Split (l)'
 
-    return STAND
+    a = input('Choose your action. Count: ' + str(state.get(COUNT_STATE_KEY)) +
+              '\n' + input_str + ':  ')
+    if a == 'h' or a == 'H':
+      return Action.HIT
+    elif a == 's' or a == 'S':
+      return Action.STAND
+    elif (a == 'd' or a == 'D') and can_double:
+      return Action.DOUBLE_DOWN
+    elif (a == 'l' or a == 'L') and can_split:
+      return Action.SPLIT
+
+    return Action.STAND

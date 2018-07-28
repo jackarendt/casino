@@ -30,3 +30,7 @@ class Card(object):
     return self.desc
   def __repr__(self):
     return self.__str__()
+
+  def __eq__(self, rhs):
+    # Two cards are equal if their max/min values are equal.
+    return self.max_val == rhs.max_val and self.min_val == rhs.min_val

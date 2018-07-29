@@ -1,5 +1,5 @@
-from card import *
-from constants import *
+from blackjack.card import *
+from blackjack.constants import *
 
 class Hand(object):
   """A class that represents the behavior of a player's hand."""
@@ -33,6 +33,9 @@ class Hand(object):
   def add_card(self, card):
     """Add the new card to the player's hand."""
     self.cards.append(card)
+
+  def reset(self):
+    self.cards = []
 
   def count(self):
     """

@@ -1,6 +1,6 @@
 import functools
 import random
-from card import *
+from blackjack.card import *
 
 class Shoe(object):
   """Represents the shoe where all of the cards are stored."""

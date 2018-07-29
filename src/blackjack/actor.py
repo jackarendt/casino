@@ -1,6 +1,6 @@
-from card import *
-from constants import *
-from hand import *
+from blackjack.card import *
+from blackjack.constants import *
+from blackjack.hand import *
 
 class Actor(object):
   """
@@ -48,12 +48,12 @@ class Actor(object):
     first_card = self.hands[hand_idx].cards[0]
     second_card = self.hands[hand_idx].cards[1]
     self.hands.insert(hand_idx + 1, Hand())
-    self.hands[hand_idx].reset_hand()
+    self.hands[hand_idx].reset()
     self.add_card(first_card, hand_idx)
     self.add_card(second_card, hand_idx + 1)
 
     self.hands[hand_idx].is_split = True
-    self.hands[hand_idx + 1].is_split == True
+    self.hands[hand_idx + 1].is_split = True
 
   def add_card(self, card, hand_idx=0):
     """Add the new card to the player's hand at a given index."""

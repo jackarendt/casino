@@ -1,9 +1,7 @@
-import actor
-import dealer_actor
-import human_actor
-import shoe
-
-from constants import *
+from blackjack.constants import *
+from blackjack.dealer_actor import DealerActor
+from blackjack.human_actor import HumanActor
+from blackjack.shoe import Shoe
 
 class Blackjack(object):
   """
@@ -14,8 +12,8 @@ class Blackjack(object):
   """
   def __init__(self, num_agents, print_desc, is_human):
     # A typical shoe has 6 decks and reshuffles when roughly 5/6 decks are used.
-    self.shoe = shoe.Shoe(6, 0.8)
-    self.dealer = dealer_actor.DealerActor(1000000)
+    self.shoe = Shoe(6, 0.8)
+    self.dealer = DealerActor(1000000)
     self.agents = []
     self.player_count = num_agents + 1
     self.print_desc = print_desc
@@ -23,7 +21,7 @@ class Blackjack(object):
     # Add the agents.
     for i in range(num_agents):
       if is_human:
-        agent = human_actor.HumanActor(1000)
+        agent = HumanActor(1000)
         self.agents.append(agent)
 
   def deal(self):
@@ -132,8 +130,13 @@ class Blackjack(object):
     # Splitting aces only allows for one card to be drawn for each hand.
     # Therefore, don't allow any actions on the second split hand.
     hand = agent.hands[hand_idx]
-    if hand.is_split and hands.cards[0].is_ace():
-      return
+    print(hand)
+    if hand.is_split:
+      if self.print_desc:
+        print('Player ' + str(idx + 1) + ' (' + str(hand_idx) + '): ' +
+              str(agent.hands[hand_idx]))
+      if hand.cards[0].is_ace():
+        return
 
     d = False
     while not d:
@@ -163,7 +166,7 @@ class Blackjack(object):
         agent.add_card(self.shoe.draw(), hand_idx + 1)
 
       # Print the description after the user takes their action.
-      if self.print_desc:
+      if self.print_desc and a != Action.STAND:
         print('Player ' + str(idx + 1) + ' (' + str(hand_idx) + '): ' +
               str(agent.hands[hand_idx]))
 
@@ -197,11 +200,3 @@ class Blackjack(object):
       print(player_desc + ' pushed.')
     else:
       print(player_desc + ' lost. ' + str(reward))
-
-if __name__ == '__main__':
-  print('Welcome to blackjack. Let\'s shuffle up and deal.')
-  env = Blackjack(1, True, True)
-  for i in range(2):
-    env.deal()
-    env.play()
-    env.assess_rewards()

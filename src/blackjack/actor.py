@@ -7,10 +7,9 @@ class Actor(object):
   Base class for interacting with the environment. Allows humans or AIs to use
   the same API.
   """
-  def __init__(self, chip_count):
+  def __init__(self, chip_count=0):
     self.chip_count = chip_count
     self.hands = [Hand()]
-    self.hand_count = 0
     self.bet = 0
     self.took_insurance = False
 

@@ -1,4 +1,4 @@
-from blackjack.actor import *
+from actor import *
 
 class DealerActor(Actor):
   """

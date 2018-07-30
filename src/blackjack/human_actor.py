@@ -1,5 +1,5 @@
-from blackjack.actor import *
-from blackjack.constants import *
+from actor import *
+from constants import *
 
 class HumanActor(Actor):
   """An actor that is controlled via a CLI and played by a human."""

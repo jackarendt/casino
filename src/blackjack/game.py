@@ -1,7 +1,7 @@
-from blackjack.constants import *
-from blackjack.dealer_actor import DealerActor
-from blackjack.human_actor import HumanActor
-from blackjack.shoe import Shoe
+from constants import *
+from dealer_actor import DealerActor
+from human_actor import HumanActor
+from shoe import Shoe
 
 class Blackjack(object):
   """
@@ -10,19 +10,16 @@ class Blackjack(object):
   the current state. An advantage of using this environment is that it allows
   for many actors to play at once and accumulate different experiences.
   """
-  def __init__(self, num_agents, print_desc, is_human):
+  def __init__(self, agents, print_desc=False):
     # A typical shoe has 6 decks and reshuffles when roughly 5/6 decks are used.
     self.shoe = Shoe(6, 0.8)
     self.dealer = DealerActor(1000000)
     self.agents = []
-    self.player_count = num_agents + 1
+    self.player_count = len(agents) + 1
     self.print_desc = print_desc
 
     # Add the agents.
-    for i in range(num_agents):
-      if is_human:
-        agent = HumanActor(1000)
-        self.agents.append(agent)
+    self.agents = agents
 
   def deal(self):
     """Deals the cards to the various players and agents."""
@@ -76,8 +73,10 @@ class Blackjack(object):
       # performed.
       for hand_idx, hand in enumerate(agent.hands):
         # Get the new reward from the hand and update the running reward.
+        # Doubling down doubles the player's bet for that hand.
+        bet = (2 if hand.did_double else 1) * agent.bet
         new_reward = self.compare_hands(dealer_count, agent.count(hand_idx),
-            agent.is_blackjack(hand_idx), agent.bet)
+            agent.is_blackjack(hand_idx), bet)
         running_reward += new_reward
 
         if self.print_desc:
@@ -130,7 +129,6 @@ class Blackjack(object):
     # Splitting aces only allows for one card to be drawn for each hand.
     # Therefore, don't allow any actions on the second split hand.
     hand = agent.hands[hand_idx]
-    print(hand)
     if hand.is_split:
       if self.print_desc:
         print('Player ' + str(idx + 1) + ' (' + str(hand_idx) + '): ' +
@@ -156,6 +154,8 @@ class Blackjack(object):
       # Add the card if the user hit.
       if a == Action.HIT or a == Action.DOUBLE_DOWN:
         agent.add_card(self.shoe.draw(), hand_idx)
+        if a == Action.DOUBLE_DOWN:
+          hand.did_double = True
 
       split_finished = False
       if a == Action.SPLIT:

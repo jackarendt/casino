@@ -1,11 +1,12 @@
-from blackjack.card import *
-from blackjack.constants import *
+from card import *
+from constants import *
 
 class Hand(object):
   """A class that represents the behavior of a player's hand."""
   def __init__(self):
     self.cards = []
     self.is_split = False
+    self.did_double = False
 
   def is_soft_hand(self):
     """
@@ -18,17 +19,17 @@ class Hand(object):
       return False
 
     # Check if the user has an ace.
-    if filter(lambda card: card.is_ace(), self.cards) is not None:
-      return True
+    if filter(lambda card: card.is_ace(), self.cards) is None:
+      return False
 
     # Sum all of the min values in the hand. If the sum comes to less than 11,
     # then it means that there is room for an ace to take on the value of 11 or
     # 1.
     total = 0
     for card in self.cards:
-      total += card.min_value
+      total += card.min_val
 
-    return card.min_value < 11
+    return total < 11
 
   def add_card(self, card):
     """Add the new card to the player's hand."""

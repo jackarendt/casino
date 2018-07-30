@@ -1,6 +1,6 @@
-from blackjack.card import *
-from blackjack.constants import *
-from blackjack.hand import *
+from card import *
+from constants import *
+from hand import *
 
 class Actor(object):
   """

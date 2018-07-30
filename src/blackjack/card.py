@@ -34,3 +34,10 @@ class Card(object):
   def __eq__(self, rhs):
     # Two cards are equal if their max/min values are equal.
     return self.max_val == rhs.max_val and self.min_val == rhs.min_val
+
+
+def create_ace():
+  return Card(1, 11, 'A')
+
+def create_card(value):
+  return Card(value, value, str(value))

@@ -5,7 +5,7 @@ class DealerActor(Actor):
   An actor that represents how a dealer behaves on the table. It follows Vegas
   rules. Hit on soft 17.
   """
-  def __init__(self, chip_count):
+  def __init__(self, chip_count=0):
     super().__init__(chip_count)
     self.show_hand = False
 

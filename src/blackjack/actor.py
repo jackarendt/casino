@@ -12,6 +12,7 @@ class Actor(object):
     self.hands = [Hand()]
     self.hand_count = 0
     self.bet = 0
+    self.took_insurance = False
 
   def process_state(self, state):
     """
@@ -62,6 +63,7 @@ class Actor(object):
   def reset_hand(self):
     """Removes all of the cards from the current hand."""
     self.hands = [Hand()]
+    self.took_insurance = False
 
   def is_soft_hand(self, hand_idx=0):
     """

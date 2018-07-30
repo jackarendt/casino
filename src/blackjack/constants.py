@@ -10,9 +10,12 @@ class Action(Enum):
   HIT = 1
   DOUBLE_DOWN = 2
   SPLIT = 3
+  INSURANCE = 4
 
 # State keys for processing state.
 DEALER_STATE_KEY = 'dealer'
 COUNT_STATE_KEY = 'count'
 DOUBLE_DOWN_STATE_KEY = 'double'
 SPLIT_STATE_KEY = 'split'
+HAND_INDEX_STATE_KEY = 'hand_idx'
+INSURANCE_STATE_KEY = 'insurance'

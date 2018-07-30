@@ -13,7 +13,7 @@ class Blackjack(object):
   def __init__(self, agents, print_desc=False):
     # A typical shoe has 6 decks and reshuffles when roughly 5/6 decks are used.
     self.shoe = Shoe(6, 0.8)
-    self.dealer = DealerActor(1000000)
+    self.dealer = DealerActor()
     self.agents = []
     self.player_count = len(agents) + 1
     self.print_desc = print_desc
@@ -45,6 +45,25 @@ class Blackjack(object):
     """
     Iterates through all of the agents and then the dealer to play their hand.
     """
+    if self.dealer.first_card().is_ace():
+      count = self.shoe.hilo_count() - self.dealer.hidden_card().hilo_count()
+      state = {
+        DEALER_STATE_KEY: self.dealer.first_card(),
+        COUNT_STATE_KEY: count,
+        INSURANCE_STATE_KEY: True
+      }
+      for idx, agent in enumerate(self.agents):
+        a = agent.process_state(state)
+        if a == Action.INSURANCE:
+          agent.took_insurance = True
+
+    if self.dealer.is_blackjack():
+      self.dealer.show_hand = True
+      if self.print_desc:
+        print('Dealer: ' + str(self.dealer))
+        print('Dealer has blackjack.')
+      return
+
     for idx, agent in enumerate(self.agents):
       self.play_agent(agent, idx)
 
@@ -61,9 +80,6 @@ class Blackjack(object):
 
   def assess_rewards(self):
     """Finalizes the hand and either takes or hands out winnings."""
-    dealer_count = self.dealer.count()
-    self.dealer.process_reward(0, 0)
-
     for idx, agent in enumerate(self.agents):
       # Other rewards are the number of cards that were drawn.
       additional_cards = agent.drawn_cards()
@@ -75,8 +91,18 @@ class Blackjack(object):
         # Get the new reward from the hand and update the running reward.
         # Doubling down doubles the player's bet for that hand.
         bet = (2 if hand.did_double else 1) * agent.bet
-        new_reward = self.compare_hands(dealer_count, agent.count(hand_idx),
-            agent.is_blackjack(hand_idx), bet)
+
+        new_reward = self.compare_hands(self.dealer.hands[0],
+                                        agent.hands[hand_idx], bet)
+
+        if agent.took_insurance:
+          if self.dealer.is_blackjack():
+            if not agent.is_blackjack(hand_idx):
+              new_reward /= 2
+            else:
+              new_reward = agent.bet
+          else:
+            new_reward -= agent.bet / 2
         running_reward += new_reward
 
         if self.print_desc:
@@ -90,15 +116,24 @@ class Blackjack(object):
       # Process the rewards at the end of each agent's calculation.
       agent.process_reward(running_reward, agent.drawn_cards())
 
-  def compare_hands(self, dealer, player, blackjack, bet):
-    dealer_bust = dealer > BLACKJACK_VALUE
-    player_bust = player > BLACKJACK_VALUE
+    self.dealer.process_reward(0, 0)
 
-    loss = player_bust or (player < dealer and not dealer_bust)
-    win = (dealer_bust or player > dealer or blackjack) and not player_bust
+  def compare_hands(self, dealer, player, bet):
+    player_count = player.count()
+    dealer_count = dealer.count()
+    dealer_bust = dealer_count > BLACKJACK_VALUE
+    player_bust = player_count > BLACKJACK_VALUE
+
+    # Both dealer and player blackjack is a push.
+    if dealer.is_blackjack() and player.is_blackjack():
+      return 0
+
+    loss = player_bust or (player_count < dealer_count and not dealer_bust)
+    win = ((dealer_bust or player_count > dealer_count or
+          player.is_blackjack()) and not player_bust)
 
     if win:
-      return (1.5 if blackjack else 1) * bet
+      return (1.5 if player.is_blackjack() else 1) * bet
     elif loss:
       return -1 * bet
     else:
@@ -145,7 +180,8 @@ class Blackjack(object):
         DEALER_STATE_KEY: self.dealer.first_card(),
         COUNT_STATE_KEY: count,
         DOUBLE_DOWN_STATE_KEY: hand.can_double_down(),
-        SPLIT_STATE_KEY: hand.can_split()
+        SPLIT_STATE_KEY: hand.can_split(),
+        HAND_INDEX_STATE_KEY: hand_idx
       }
 
       # Process the current state.
